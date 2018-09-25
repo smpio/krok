@@ -1,26 +1,14 @@
 import sys
 import time
 import socket
+import threading
+import subprocess
 from contextlib import closing
 
 
 def exit(message, code=1):
     print(message, file=sys.stderr)
     sys.exit(code)
-
-
-def find_free_port() -> int:
-    """
-    Find a port that isn't in use.
-    XXX race condition-prone.
-    """
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    try:
-        s.bind(('', 0))
-        return s.getsockname()[1]
-    finally:
-        s.close()
 
 
 def wait_socket(host, port, timeout=None):
@@ -36,3 +24,30 @@ def wait_socket(host, port, timeout=None):
 def check_socket(host, port):
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
         return sock.connect_ex((host, port)) == 0
+
+
+def spawn_bg_process(*args, queue=None, **kwargs):
+    if queue is not None:
+        kwargs['stdout'] = subprocess.PIPE
+        kwargs['stderr'] = subprocess.PIPE
+
+    p = subprocess.Popen(*args, **kwargs)
+
+    if queue is not None:
+        LineReaderThread(p.stdout, queue, (p, 'stdout')).start()
+        LineReaderThread(p.stderr, queue, (p, 'stderr')).start()
+
+    return p
+
+
+class LineReaderThread(threading.Thread):
+    def __init__(self, fp, queue, item_prefix):
+        super().__init__(daemon=False)
+        self.fp = fp
+        self.queue = queue
+        self.item_prefix = item_prefix
+
+    def run(self):
+        for line in self.fp:
+            self.queue.put(self.item_prefix + (line,))
+        self.queue.put(self.item_prefix + (None,))

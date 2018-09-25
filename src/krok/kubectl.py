@@ -20,8 +20,8 @@ class KubeCtl:
     def __call__(self, *args, **kwargs):
         return _exec(*self._add_namespace_args(args), **kwargs)
 
-    def spawn(self, *args):
-        return subprocess.Popen(('kubectl',) + self._add_namespace_args(args))
+    def spawn_bg(self, *args, queue=None):
+        utils.spawn_bg_process(('kubectl',) + self._add_namespace_args(args), queue=queue)
 
     def _add_namespace_args(self, args):
         if self._namespace:
@@ -36,8 +36,7 @@ class KubeCtl:
             return utils.exit(e)
 
 
-def _exec(*argv, **kwargs):
-    oneline = kwargs.pop('oneline', False)
+def _exec(*argv, oneline=False, **kwargs):
     kwargs['stdout'] = subprocess.PIPE
     kwargs.setdefault('check', True)
 

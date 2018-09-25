@@ -1,4 +1,5 @@
 import sys
+import queue
 import argparse
 
 from . import ssh
@@ -31,8 +32,12 @@ def main():
     kubectl = KubeCtl(namespace=args.namespace)
     pod = get_server_pod_name(kubectl)
 
-    local_ssh_port = utils.find_free_port()
-    kubectl.spawn('port-forward', pod, f'{local_ssh_port}:22')
+    q = queue.Queue()
+
+    kubectl.spawn_bg('port-forward', pod, ':22', queue=q)
+
+    while True:
+        print_subprocess_line(q.get())
 
     if not utils.wait_socket('localhost', local_ssh_port, timeout=5):
         utils.exit('krok server not accepting connections')
@@ -70,6 +75,18 @@ def ensure_service(kubectl, service_name, service_port, pod_port):
         run: krok
     """.encode())
     print(f'Service {kubectl.namespace}/{service_name}:{service_port} is ready')
+
+
+def print_subprocess_line(line):
+    process, fdtype, line = line
+    cmd = process.args[0]
+    if line is None:
+        return utils.exit(f'Command {cmd} exited')
+
+    fd = getattr(sys, fdtype).buffer
+    fd.write(cmd.encode())
+    fd.write(b': ')
+    fd.write(line)
 
 
 if __name__ == '__main__':

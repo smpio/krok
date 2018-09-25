@@ -18,9 +18,15 @@ class KubeCtl:
             return ns or 'default'
 
     def __call__(self, *args, **kwargs):
+        return _exec(*self._add_namespace_args(args), **kwargs)
+
+    def spawn(self, *args):
+        return subprocess.Popen(('kubectl',) + self._add_namespace_args(args))
+
+    def _add_namespace_args(self, args):
         if self._namespace:
             args = ('--namespace', self.namespace) + args
-        return _exec(*args, **kwargs)
+        return args
 
     @staticmethod
     def assert_version_supported():
@@ -31,7 +37,7 @@ class KubeCtl:
 
 
 def _exec(*argv, oneline=False):
-    stdout = subprocess.run(('kubectl',) + argv, check=True, stdout=subprocess.PIPE).stdout
+    stdout = subprocess.run(('kubectl',) + argv, check=True, stdout=subprocess.PIPE).stdout.decode()
     if oneline:
         lines = stdout.splitlines()
         if not lines:

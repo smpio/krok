@@ -36,8 +36,12 @@ class KubeCtl:
             return utils.exit(e)
 
 
-def _exec(*argv, oneline=False):
-    stdout = subprocess.run(('kubectl',) + argv, check=True, stdout=subprocess.PIPE).stdout.decode()
+def _exec(*argv, **kwargs):
+    oneline = kwargs.pop('oneline', False)
+    kwargs['stdout'] = subprocess.PIPE
+    kwargs.setdefault('check', True)
+
+    stdout = subprocess.run(('kubectl',) + argv, **kwargs).stdout.decode()
     if oneline:
         lines = stdout.splitlines()
         if not lines:

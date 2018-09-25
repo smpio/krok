@@ -1,6 +1,5 @@
 import sys
 import argparse
-import subprocess
 
 from . import ssh
 from . import utils
@@ -39,7 +38,8 @@ def main():
         utils.exit('krok server not accepting connections')
 
     try:
-        ssh.spawn_forwarder(args.local_host, args.local_port, 'localhost', local_ssh_port, handle_forwarding_started)
+        ssh.spawn_forwarder(args.local_host, args.local_port, 'localhost', local_ssh_port,
+                            lambda p: ensure_service(kubectl, args.service_name, args.service_port, p))
     except KeyboardInterrupt:
         return sys.exit(0)
 
@@ -53,8 +53,23 @@ def get_server_pod_name(kubectl):
     return pods[0]
 
 
-def handle_forwarding_started(remote_port):
-    print('YES', remote_port)
+def ensure_service(kubectl, service_name, service_port, pod_port):
+    kubectl('apply', '-f', '-', input=f"""
+    apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        run: krok
+      name: {service_name}
+    spec:
+      ports:
+        - port: {service_port}
+          protocol: TCP
+          targetPort: {pod_port}
+      selector:
+        run: krok
+    """.encode())
+    print(f'Service {kubectl.namespace}/{service_name}:{service_port} is ready')
 
 
 if __name__ == '__main__':

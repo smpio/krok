@@ -13,7 +13,7 @@ def assert_local_version_supported():
     except subprocess.CalledProcessError as e:
         return utils.exit(e)
     if not result.stderr.startswith(b'OpenSSH'):
-        return utils.exit("'ssh' is not the OpenSSH client, apparently")
+        return utils.exit("'ssh' is not the OpenSSH client, apparently.")
 
 
 def spawn_forwarder(local_host, local_port, ssh_host, ssh_port, callback):

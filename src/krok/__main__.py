@@ -35,7 +35,7 @@ def main():
     kubectl.spawn('port-forward', pod, f'{local_ssh_port}:22')
 
     if not utils.wait_socket('localhost', local_ssh_port, timeout=5):
-        utils.exit('krok server not accepting connections')
+        return utils.exit('Krok server not accepting connections.')
 
     try:
         ssh.spawn_forwarder(args.local_host, args.local_port, 'localhost', local_ssh_port,
@@ -47,9 +47,11 @@ def main():
 def get_server_pod_name(kubectl):
     pods = kubectl('get', 'pods', '-l', 'run=krok', '-o', 'jsonpath={.items[*].metadata.name}').splitlines()
     if len(pods) < 1:
-        return utils.exit(f'krok server is not installed in namespace "{kubectl.namespace}"')
+        return utils.exit(f'Krok server is not installed in namespace "{kubectl.namespace}". '
+                          f'Use the following command to install it:\n'
+                          f'kubectl -n {kubectl.namespace} run --image=smpio/krok-server krok')
     if len(pods) > 1:
-        return utils.exit(f'krok server has more then one pod in namespace "{kubectl.namespace}"')
+        return utils.exit(f'Krok server has more then one pod in namespace "{kubectl.namespace}".')
     return pods[0]
 
 

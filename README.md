@@ -12,10 +12,7 @@ Giving we want to create service in `namespace` with name `service_name` on port
 
 2. Install krok server: `kubectl -n <namespace> run --image=smpio/krok-server krok`
 
-3. Run krok: `krok -n <namespace> -l <local_host> -p <local_port> <service_name> <service_port>`
-
-Note: `local_host` can be any host reachable from your machine, but usually `127.0.0.1` is the most useful.
-
+3. Run krok: `krok -n <namespace> -p <local_port> <service_name> <service_port>`
 
 ## How it works
 
